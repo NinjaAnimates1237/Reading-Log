@@ -362,8 +362,16 @@ function renderSwitchAccountOptions() {
     switchAccountSelect.appendChild(option);
   });
 
-  switchAccountSelect.disabled = otherNames.length === 0;
-  switchAccountBtn.disabled = true;
+  if (otherNames.length > 0) {
+    switchAccountSelect.value = otherNames[0];
+    switchAccountSelect.disabled = false;
+    switchAccountBtn.disabled = false;
+    switchAccountBtn.textContent = 'Go';
+  } else {
+    switchAccountSelect.disabled = true;
+    switchAccountBtn.disabled = true;
+    switchAccountBtn.textContent = 'Go';
+  }
 }
 
 switchAccountSelect.addEventListener('change', () => {
@@ -602,11 +610,19 @@ function renderProfiles() {
   }
 
   otherNames.forEach(name => {
+    const userBooks = getBooksForUser(name);
+    const currentlyReadingCount = userBooks.filter(book => book.status === 'reading').length;
+
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'profile-pill';
     if (name === selectedProfile) btn.classList.add('active');
     btn.textContent = name;
+
+    const meta = document.createElement('span');
+    meta.className = 'profile-pill-meta';
+    meta.textContent = `${currentlyReadingCount} currently reading`;
+    btn.appendChild(meta);
     btn.addEventListener('click', () => {
       selectedProfile = name;
       renderProfiles();
@@ -616,6 +632,7 @@ function renderProfiles() {
 
   const readingBooks = getBooksForUser(selectedProfile)
     .filter(book => book.status === 'reading');
+  const allBooksCount = getBooksForUser(selectedProfile).length;
 
   profileReadingEl.hidden = false;
   profileReadingEl.innerHTML = '';
@@ -628,7 +645,9 @@ function renderProfiles() {
   if (readingBooks.length === 0) {
     const none = document.createElement('div');
     none.className = 'profile-reading-meta';
-    none.textContent = 'No books marked as currently reading.';
+    none.textContent = allBooksCount === 0
+      ? 'No books added yet for this profile.'
+      : 'No books are marked as currently reading for this profile.';
     profileReadingEl.appendChild(none);
     return;
   }
