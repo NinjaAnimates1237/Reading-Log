@@ -26,6 +26,10 @@
       <form id="setup-form" class="auth-form" hidden>
         <p class="auth-hint">Create a password to protect your reading log.</p>
         <div class="field-group">
+          <label for="setup-username">Username</label>
+          <input type="text" id="setup-username" autocomplete="username" minlength="2" maxlength="20" required placeholder="reader1" />
+        </div>
+        <div class="field-group">
           <label for="setup-password">Password</label>
           <input type="password" id="setup-password" autocomplete="new-password" minlength="8" required placeholder="At least 8 characters" />
         </div>
@@ -35,15 +39,22 @@
         </div>
         <button type="submit" class="btn btn-primary btn-full">Create Password</button>
         <p class="auth-error" id="setup-error" hidden></p>
+        <button type="button" id="back-to-login-btn" class="auth-switch-btn" hidden>Back to sign in</button>
       </form>
 
       <!-- Login -->
       <form id="login-form" class="auth-form" hidden>
         <div class="field-group">
+          <label for="login-username">Username</label>
+          <input type="text" id="login-username" autocomplete="username" minlength="2" maxlength="20" required placeholder="reader1" />
+        </div>
+        <div class="field-group">
           <label for="login-password">Password</label>
           <input type="password" id="login-password" autocomplete="current-password" required placeholder="Enter your password" />
         </div>
         <button type="submit" class="btn btn-primary btn-full">Sign In</button>
+        <button type="button" id="show-setup-btn" class="auth-switch-btn">Create another account</button>
+        <p class="auth-users" id="auth-users" hidden></p>
         <p class="auth-error" id="login-error" hidden></p>
         <p class="auth-lockout" id="login-lockout" hidden></p>
       </form>
