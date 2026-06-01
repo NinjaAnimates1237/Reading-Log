@@ -1,16 +1,16 @@
 // ============================================================
 //  Reading Log — Auth + App Logic
 //  Auth: PBKDF2 (SHA-256, 200k iterations) + random salt
-//        stored in localStorage. Session via sessionStorage
+//        per account in localStorage. Session via sessionStorage
 //        so login clears when the tab closes.
 //  Rate-limit: 5 failed attempts → 30-second lockout.
 // ============================================================
 
 'use strict';
 
-const AUTH_KEY    = 'rl_auth_v1';
+const AUTH_KEY    = 'rl_accounts_v1';
 const SESSION_KEY = 'rl_session_v1';
-const BOOKS_KEY   = 'rl_books_v1';
+const BOOKS_KEY_PREFIX = 'rl_books_v1_';
 const ATTEMPTS_KEY = 'rl_attempts_v1';
 
 // ── Crypto helpers ───────────────────────────────────────────
@@ -48,26 +48,109 @@ function constantTimeEqual(a, b) {
   return diff === 0;
 }
 
+function normalizeUsername(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function isValidUsername(value) {
+  return /^[a-z0-9_-]{2,20}$/.test(value);
+}
+
 // ── Auth state ───────────────────────────────────────────────
 
-function hasAuth()    { return !!localStorage.getItem(AUTH_KEY); }
-function isLoggedIn() { return !!sessionStorage.getItem(SESSION_KEY); }
-function setSession() { sessionStorage.setItem(SESSION_KEY, crypto.randomUUID()); }
-function clearSession() { sessionStorage.removeItem(SESSION_KEY); }
-
-function getAuthRecord() {
-  try { return JSON.parse(localStorage.getItem(AUTH_KEY)); } catch { return null; }
+function hasAuth() {
+  return getAccountCount() > 0;
 }
 
-async function setupPassword(password) {
+function isLoggedIn() {
+  return !!getSessionUser();
+}
+
+function setSession(username) {
+  const session = { id: crypto.randomUUID(), user: normalizeUsername(username) };
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+}
+
+function clearSession() {
+  sessionStorage.removeItem(SESSION_KEY);
+}
+
+function getSessionUser() {
+  try {
+    const raw = JSON.parse(sessionStorage.getItem(SESSION_KEY));
+    return raw && raw.user ? normalizeUsername(raw.user) : null;
+  } catch {
+    return null;
+  }
+}
+
+function getBooksKeyForUser(username) {
+  return `${BOOKS_KEY_PREFIX}${normalizeUsername(username)}`;
+}
+
+function migrateLegacyAuthIfNeeded() {
+  const raw = localStorage.getItem(AUTH_KEY);
+  if (!raw) return;
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return;
+  }
+
+  if (parsed && parsed.hash && parsed.salt) {
+    const migrated = { users: { owner: { hash: parsed.hash, salt: parsed.salt, createdAt: new Date().toISOString() } } };
+    localStorage.setItem(AUTH_KEY, JSON.stringify(migrated));
+  }
+}
+
+function getAuthStore() {
+  migrateLegacyAuthIfNeeded();
+  try {
+    const parsed = JSON.parse(localStorage.getItem(AUTH_KEY));
+    if (parsed && parsed.users && typeof parsed.users === 'object') return parsed;
+  } catch {
+    // Ignore parse errors and return empty store.
+  }
+  return { users: {} };
+}
+
+function saveAuthStore(store) {
+  localStorage.setItem(AUTH_KEY, JSON.stringify(store));
+}
+
+function getAccountCount() {
+  return Object.keys(getAuthStore().users).length;
+}
+
+function getAccountNames() {
+  return Object.keys(getAuthStore().users).sort();
+}
+
+function getAuthRecord(username) {
+  const store = getAuthStore();
+  return store.users[normalizeUsername(username)] || null;
+}
+
+async function setupPassword(username, password) {
+  const normalized = normalizeUsername(username);
+  const store = getAuthStore();
+  if (store.users[normalized]) return { ok: false, reason: 'exists' };
+
   const salt = generateSalt();
   const hash = await deriveKey(password, salt);
-  localStorage.setItem(AUTH_KEY, JSON.stringify({ hash, salt }));
-  setSession();
+  store.users[normalized] = {
+    hash,
+    salt,
+    createdAt: new Date().toISOString(),
+  };
+  saveAuthStore(store);
+  setSession(normalized);
+  return { ok: true };
 }
 
-async function verifyPassword(password) {
-  const record = getAuthRecord();
+async function verifyPassword(username, password) {
+  const record = getAuthRecord(username);
   if (!record) return false;
   const hash = await deriveKey(password, record.salt);
   return constantTimeEqual(hash, record.hash);
@@ -79,24 +162,35 @@ const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS   = 30_000;
 
 function getAttemptState() {
-  try { return JSON.parse(sessionStorage.getItem(ATTEMPTS_KEY)) || { count: 0, lockedUntil: 0 }; }
-  catch { return { count: 0, lockedUntil: 0 }; }
+  try { return JSON.parse(sessionStorage.getItem(ATTEMPTS_KEY)) || {}; }
+  catch { return {}; }
 }
 
-function recordFailedAttempt() {
-  const s = getAttemptState();
-  s.count++;
-  if (s.count >= MAX_ATTEMPTS) s.lockedUntil = Date.now() + LOCKOUT_MS;
-  sessionStorage.setItem(ATTEMPTS_KEY, JSON.stringify(s));
-  return s;
+function getUserAttemptState(username) {
+  const states = getAttemptState();
+  const key = normalizeUsername(username);
+  return states[key] || { count: 0, lockedUntil: 0 };
 }
 
-function resetAttempts() {
-  sessionStorage.removeItem(ATTEMPTS_KEY);
+function recordFailedAttempt(username) {
+  const states = getAttemptState();
+  const key = normalizeUsername(username);
+  const current = states[key] || { count: 0, lockedUntil: 0 };
+  current.count += 1;
+  if (current.count >= MAX_ATTEMPTS) current.lockedUntil = Date.now() + LOCKOUT_MS;
+  states[key] = current;
+  sessionStorage.setItem(ATTEMPTS_KEY, JSON.stringify(states));
+  return current;
 }
 
-function isLockedOut() {
-  const s = getAttemptState();
+function resetAttempts(username) {
+  const states = getAttemptState();
+  delete states[normalizeUsername(username)];
+  sessionStorage.setItem(ATTEMPTS_KEY, JSON.stringify(states));
+}
+
+function isLockedOut(username) {
+  const s = getUserAttemptState(username);
   if (s.lockedUntil && Date.now() < s.lockedUntil) return s.lockedUntil;
   return false;
 }
@@ -104,11 +198,17 @@ function isLockedOut() {
 // ── Books data ───────────────────────────────────────────────
 
 function getBooks() {
-  try { return JSON.parse(localStorage.getItem(BOOKS_KEY)) || []; }
+  const user = getSessionUser();
+  if (!user) return [];
+  try { return JSON.parse(localStorage.getItem(getBooksKeyForUser(user))) || []; }
   catch { return []; }
 }
 
-function saveBooks(books) { localStorage.setItem(BOOKS_KEY, JSON.stringify(books)); }
+function saveBooks(books) {
+  const user = getSessionUser();
+  if (!user) return;
+  localStorage.setItem(getBooksKeyForUser(user), JSON.stringify(books));
+}
 
 function sanitize(str) { return String(str).trim().slice(0, 1000); }
 
@@ -155,6 +255,9 @@ const loginForm     = document.getElementById('login-form');
 const setupError    = document.getElementById('setup-error');
 const loginError    = document.getElementById('login-error');
 const loginLockout  = document.getElementById('login-lockout');
+const authUsersEl   = document.getElementById('auth-users');
+const showSetupBtn  = document.getElementById('show-setup-btn');
+const backToLoginBtn = document.getElementById('back-to-login-btn');
 const bookList      = document.getElementById('book-list');
 const emptyState    = document.getElementById('empty-state');
 const bookCountEl   = document.getElementById('book-count');
@@ -174,17 +277,43 @@ let currentRating = 0;
 function showError(el, msg) { el.textContent = msg; el.hidden = false; }
 function hideError(el)      { el.hidden = true; el.textContent = ''; }
 
+function showAccountList() {
+  const names = getAccountNames();
+  if (names.length === 0) {
+    authUsersEl.hidden = true;
+    authUsersEl.textContent = '';
+    return;
+  }
+  authUsersEl.hidden = false;
+  authUsersEl.textContent = `Accounts: ${names.join(', ')}`;
+}
+
+function showSetupMode(canGoBack) {
+  setupForm.hidden = false;
+  loginForm.hidden = true;
+  backToLoginBtn.hidden = !canGoBack;
+  showAccountList();
+}
+
+function showLoginMode() {
+  loginForm.hidden = false;
+  setupForm.hidden = true;
+  showAccountList();
+}
+
 function showAuthScreen() {
   authScreen.hidden = false;
   appScreen.hidden  = true;
+  hideError(setupError);
+  hideError(loginError);
+  loginLockout.hidden = true;
+
   if (!hasAuth()) {
     authSubtitle.textContent = 'Set up your reading log';
-    setupForm.hidden = false;
-    loginForm.hidden = true;
+    showSetupMode(false);
   } else {
     authSubtitle.textContent = 'Welcome back';
-    loginForm.hidden = false;
-    setupForm.hidden = true;
+    showLoginMode();
   }
 }
 
@@ -199,9 +328,14 @@ function showAppScreen() {
 setupForm.addEventListener('submit', async e => {
   e.preventDefault();
   hideError(setupError);
+  const username = normalizeUsername(document.getElementById('setup-username').value);
   const password = document.getElementById('setup-password').value;
   const confirm  = document.getElementById('setup-confirm').value;
 
+  if (!isValidUsername(username)) {
+    showError(setupError, 'Username must be 2-20 chars: letters, numbers, _ or -.');
+    return;
+  }
   if (password !== confirm) { showError(setupError, 'Passwords do not match.'); return; }
   if (password.length < 8)  { showError(setupError, 'Password must be at least 8 characters.'); return; }
 
@@ -209,7 +343,13 @@ setupForm.addEventListener('submit', async e => {
   btn.disabled    = true;
   btn.textContent = 'Setting up…';
   try {
-    await setupPassword(password);
+    const result = await setupPassword(username, password);
+    if (!result.ok && result.reason === 'exists') {
+      showError(setupError, 'That username already exists. Pick another one.');
+      btn.disabled = false;
+      btn.textContent = 'Create Password';
+      return;
+    }
     showAppScreen();
   } catch {
     showError(setupError, 'Something went wrong. Please try again.');
@@ -221,8 +361,14 @@ setupForm.addEventListener('submit', async e => {
 loginForm.addEventListener('submit', async e => {
   e.preventDefault();
   hideError(loginError);
+  const username = normalizeUsername(document.getElementById('login-username').value);
 
-  const locked = isLockedOut();
+  if (!isValidUsername(username)) {
+    showError(loginError, 'Enter a valid username.');
+    return;
+  }
+
+  const locked = isLockedOut(username);
   if (locked) {
     const secs = Math.ceil((locked - Date.now()) / 1000);
     loginLockout.textContent = `Too many attempts. Try again in ${secs}s.`;
@@ -237,13 +383,13 @@ loginForm.addEventListener('submit', async e => {
   btn.textContent = 'Signing in…';
 
   try {
-    const ok = await verifyPassword(password);
+    const ok = await verifyPassword(username, password);
     if (ok) {
-      resetAttempts();
-      setSession();
+      resetAttempts(username);
+      setSession(username);
       showAppScreen();
     } else {
-      const state = recordFailedAttempt();
+      const state = recordFailedAttempt(username);
       if (state.lockedUntil) {
         showError(loginError, `Too many failed attempts. Locked for 30 seconds.`);
       } else {
@@ -266,6 +412,16 @@ document.getElementById('logout-btn').addEventListener('click', () => {
   showAuthScreen();
 });
 
+showSetupBtn.addEventListener('click', () => {
+  hideError(loginError);
+  showSetupMode(true);
+});
+
+backToLoginBtn.addEventListener('click', () => {
+  hideError(setupError);
+  showLoginMode();
+});
+
 // ── Filter tabs ──────────────────────────────────────────────
 
 filterTabs.forEach(tab => {
@@ -278,12 +434,6 @@ filterTabs.forEach(tab => {
 });
 
 // ── Book rendering ───────────────────────────────────────────
-
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.appendChild(document.createTextNode(String(str)));
-  return div.innerHTML;
-}
 
 function renderBooks() {
   const books    = getBooks();
