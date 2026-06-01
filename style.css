@@ -190,6 +190,102 @@ body {
   padding: 32px 24px;
 }
 
+.app-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(240px, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.books-panel {
+  min-width: 0;
+}
+
+.profiles-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: 18px;
+  position: sticky;
+  top: 88px;
+}
+
+.profiles-title {
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  color: var(--color-primary);
+  margin-bottom: 8px;
+}
+
+.profiles-note {
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+  margin-bottom: 14px;
+}
+
+.profiles-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.profile-pill {
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.profile-pill.active,
+.profile-pill:hover {
+  border-color: var(--color-accent);
+  color: var(--color-primary);
+}
+
+.profile-reading {
+  border-top: 1px solid var(--color-border);
+  padding-top: 12px;
+}
+
+.profile-reading-header {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 8px;
+}
+
+.profile-reading-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.profile-reading-item {
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+}
+
+.profile-reading-title {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.profile-reading-meta {
+  font-size: 0.76rem;
+  color: var(--color-text-muted);
+  margin-top: 3px;
+}
+
 /* ============================
    Filter Bar
    ============================ */
@@ -283,6 +379,11 @@ body {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.book-card-date {
+  font-size: 0.76rem;
+  color: var(--color-text-muted);
 }
 
 /* ============================
@@ -445,6 +546,8 @@ textarea { resize: vertical; min-height: 80px; }
    ============================ */
 @media (max-width: 600px) {
   .auth-card { padding: 32px 24px; }
+  .app-layout { grid-template-columns: 1fr; }
+  .profiles-panel { position: static; order: -1; }
   .book-grid { grid-template-columns: 1fr; }
   .field-row { grid-template-columns: 1fr; }
   .header-actions .book-count { display: none; }
