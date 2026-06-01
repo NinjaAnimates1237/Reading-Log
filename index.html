@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+  <meta http-equiv="X-Frame-Options" content="DENY" />
+  <meta name="referrer" content="no-referrer" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self'; object-src 'none'; base-uri 'none';" />
+  <title>Reading Log</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&family=Lato:wght@300;400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ── Auth Screen ─────────────────────────────── -->
+  <div id="auth-screen" class="screen" hidden>
+    <div class="auth-card">
+      <div class="auth-logo">📚</div>
+      <h1 class="auth-title">Reading Log</h1>
+      <p class="auth-subtitle" id="auth-subtitle">Welcome back</p>
+
+      <!-- First-run setup -->
+      <form id="setup-form" class="auth-form" hidden>
+        <p class="auth-hint">Create a password to protect your reading log.</p>
+        <div class="field-group">
+          <label for="setup-password">Password</label>
+          <input type="password" id="setup-password" autocomplete="new-password" minlength="8" required placeholder="At least 8 characters" />
+        </div>
+        <div class="field-group">
+          <label for="setup-confirm">Confirm Password</label>
+          <input type="password" id="setup-confirm" autocomplete="new-password" minlength="8" required placeholder="Repeat password" />
+        </div>
+        <button type="submit" class="btn btn-primary btn-full">Create Password</button>
+        <p class="auth-error" id="setup-error" hidden></p>
+      </form>
+
+      <!-- Login -->
+      <form id="login-form" class="auth-form" hidden>
+        <div class="field-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" autocomplete="current-password" required placeholder="Enter your password" />
+        </div>
+        <button type="submit" class="btn btn-primary btn-full">Sign In</button>
+        <p class="auth-error" id="login-error" hidden></p>
+        <p class="auth-lockout" id="login-lockout" hidden></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── App Screen ──────────────────────────────── -->
+  <div id="app-screen" class="screen" hidden>
+    <header class="app-header">
+      <div class="header-inner">
+        <div class="header-brand">
+          <span class="header-icon">📚</span>
+          <h1 class="header-title">Reading Log</h1>
+        </div>
+        <div class="header-actions">
+          <span id="book-count" class="book-count"></span>
+          <button id="add-book-btn" class="btn btn-primary">+ Add Book</button>
+          <button id="logout-btn" class="btn btn-ghost">Sign Out</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <div class="filter-bar">
+        <button class="filter-tab active" data-filter="all">All</button>
+        <button class="filter-tab" data-filter="reading">Currently Reading</button>
+        <button class="filter-tab" data-filter="finished">Finished</button>
+        <button class="filter-tab" data-filter="want-to-read">Want to Read</button>
+      </div>
+
+      <div id="book-list" class="book-grid"></div>
+
+      <div id="empty-state" class="empty-state" hidden>
+        <div class="empty-icon">🍵</div>
+        <p class="empty-text">No books here yet.<br>Add one to get started!</p>
+      </div>
+    </main>
+  </div>
+
+  <!-- ── Add / Edit Book Modal ───────────────────── -->
+  <div id="book-modal" class="modal-overlay" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-header">
+        <h2 id="modal-title">Add a Book</h2>
+        <button id="modal-close" class="btn-icon" aria-label="Close">&times;</button>
+      </div>
+      <form id="book-form" class="book-form">
+        <input type="hidden" id="book-id" />
+        <div class="field-group">
+          <label for="book-title">Title *</label>
+          <input type="text" id="book-title" required placeholder="The Name of the Wind" />
+        </div>
+        <div class="field-group">
+          <label for="book-author">Author *</label>
+          <input type="text" id="book-author" required placeholder="Patrick Rothfuss" />
+        </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label for="book-status">Status</label>
+            <select id="book-status">
+              <option value="want-to-read">Want to Read</option>
+              <option value="reading">Currently Reading</option>
+              <option value="finished">Finished</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label>Rating</label>
+            <div class="star-rating" id="star-rating" role="group" aria-label="Star rating">
+              <button type="button" class="star" data-value="1" aria-label="1 star">★</button>
+              <button type="button" class="star" data-value="2" aria-label="2 stars">★</button>
+              <button type="button" class="star" data-value="3" aria-label="3 stars">★</button>
+              <button type="button" class="star" data-value="4" aria-label="4 stars">★</button>
+              <button type="button" class="star" data-value="5" aria-label="5 stars">★</button>
+            </div>
+            <input type="hidden" id="book-rating" value="0" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label for="book-notes">Notes</label>
+          <textarea id="book-notes" rows="3" placeholder="What did you think?"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" id="delete-book-btn" class="btn btn-danger" hidden>Delete</button>
+          <div class="modal-actions-right">
+            <button type="button" id="modal-cancel" class="btn btn-ghost">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
