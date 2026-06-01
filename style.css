@@ -181,6 +181,29 @@ body {
 
 .book-count { font-size: 0.85rem; color: var(--color-text-muted); }
 
+.switch-account-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.switch-account-select {
+  min-width: 130px;
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  padding: 8px 10px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.switch-account-select:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(200, 118, 58, 0.15);
+}
+
 /* ============================
    App Main
    ============================ */
@@ -284,6 +307,12 @@ body {
   font-size: 0.76rem;
   color: var(--color-text-muted);
   margin-top: 3px;
+}
+
+.profile-empty {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  line-height: 1.45;
 }
 
 /* ============================
@@ -550,5 +579,8 @@ textarea { resize: vertical; min-height: 80px; }
   .profiles-panel { position: static; order: -1; }
   .book-grid { grid-template-columns: 1fr; }
   .field-row { grid-template-columns: 1fr; }
+  .switch-account-label,
+  .switch-account-select,
+  #switch-account-btn { display: none; }
   .header-actions .book-count { display: none; }
 }
