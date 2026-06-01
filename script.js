@@ -88,6 +88,12 @@ function getBooksKeyForUser(username) {
   return `${BOOKS_KEY_PREFIX}${normalizeUsername(username)}`;
 }
 
+function normalizeDate(value) {
+  const str = String(value || '').trim();
+  if (!str) return '';
+  return /^\d{4}-\d{2}-\d{2}$/.test(str) ? str : '';
+}
+
 function migrateLegacyAuthIfNeeded() {
   const raw = localStorage.getItem(AUTH_KEY);
   if (!raw) return;
@@ -204,6 +210,13 @@ function getBooks() {
   catch { return []; }
 }
 
+function getBooksForUser(username) {
+  const normalized = normalizeUsername(username);
+  if (!normalized) return [];
+  try { return JSON.parse(localStorage.getItem(getBooksKeyForUser(normalized))) || []; }
+  catch { return []; }
+}
+
 function saveBooks(books) {
   const user = getSessionUser();
   if (!user) return;
@@ -221,6 +234,7 @@ function addBook(data) {
     status:    data.status,
     rating:    Number(data.rating) || 0,
     notes:     sanitize(data.notes || ''),
+    lastReadOn: normalizeDate(data.lastReadOn),
     dateAdded: new Date().toISOString(),
   };
   books.unshift(book);
@@ -239,6 +253,7 @@ function updateBook(id, data) {
     status: data.status,
     rating: Number(data.rating) || 0,
     notes:  sanitize(data.notes || ''),
+    lastReadOn: normalizeDate(data.lastReadOn),
   };
   saveBooks(books);
 }
@@ -261,6 +276,8 @@ const backToLoginBtn = document.getElementById('back-to-login-btn');
 const bookList      = document.getElementById('book-list');
 const emptyState    = document.getElementById('empty-state');
 const bookCountEl   = document.getElementById('book-count');
+const profilesListEl = document.getElementById('profiles-list');
+const profileReadingEl = document.getElementById('profile-reading');
 const filterTabs    = document.querySelectorAll('.filter-tab');
 const bookModal     = document.getElementById('book-modal');
 const bookForm      = document.getElementById('book-form');
@@ -271,6 +288,7 @@ const bookRatingInput = document.getElementById('book-rating');
 
 let currentFilter = 'all';
 let currentRating = 0;
+let selectedProfile = null;
 
 // ── Screen helpers ───────────────────────────────────────────
 
@@ -321,6 +339,7 @@ function showAppScreen() {
   authScreen.hidden = true;
   appScreen.hidden  = false;
   renderBooks();
+  renderProfiles();
 }
 
 // ── Auth forms ───────────────────────────────────────────────
@@ -502,10 +521,86 @@ function renderBooks() {
       card.appendChild(notesEl);
     }
 
+    if (book.lastReadOn) {
+      const dateEl = document.createElement('div');
+      dateEl.className = 'book-card-date';
+      dateEl.textContent = `Last read on ${book.lastReadOn}`;
+      card.appendChild(dateEl);
+    }
+
     card.addEventListener('click', () => openEditModal(book));
     card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') openEditModal(book); });
     bookList.appendChild(card);
   });
+}
+
+function renderProfiles() {
+  const names = getAccountNames();
+  const currentUser = getSessionUser();
+  profilesListEl.innerHTML = '';
+
+  if (names.length === 0) {
+    profileReadingEl.hidden = false;
+    profileReadingEl.textContent = 'No profiles yet.';
+    return;
+  }
+
+  if (!selectedProfile || !names.includes(selectedProfile)) {
+    selectedProfile = currentUser && names.includes(currentUser) ? currentUser : names[0];
+  }
+
+  names.forEach(name => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'profile-pill';
+    if (name === selectedProfile) btn.classList.add('active');
+    btn.textContent = name === currentUser ? `${name} (you)` : name;
+    btn.addEventListener('click', () => {
+      selectedProfile = name;
+      renderProfiles();
+    });
+    profilesListEl.appendChild(btn);
+  });
+
+  const readingBooks = getBooksForUser(selectedProfile)
+    .filter(book => book.status === 'reading');
+
+  profileReadingEl.hidden = false;
+  profileReadingEl.innerHTML = '';
+
+  const header = document.createElement('div');
+  header.className = 'profile-reading-header';
+  header.textContent = `${selectedProfile} is currently reading:`;
+  profileReadingEl.appendChild(header);
+
+  if (readingBooks.length === 0) {
+    const none = document.createElement('div');
+    none.className = 'profile-reading-meta';
+    none.textContent = 'No books marked as currently reading.';
+    profileReadingEl.appendChild(none);
+    return;
+  }
+
+  const list = document.createElement('div');
+  list.className = 'profile-reading-list';
+
+  readingBooks.forEach(book => {
+    const item = document.createElement('div');
+    item.className = 'profile-reading-item';
+
+    const title = document.createElement('div');
+    title.className = 'profile-reading-title';
+    title.textContent = book.title;
+
+    const meta = document.createElement('div');
+    meta.className = 'profile-reading-meta';
+    meta.textContent = `by ${book.author}${book.lastReadOn ? ` • last read ${book.lastReadOn}` : ''}`;
+
+    item.append(title, meta);
+    list.appendChild(item);
+  });
+
+  profileReadingEl.appendChild(list);
 }
 
 // ── Modal ────────────────────────────────────────────────────
@@ -518,6 +613,7 @@ function openAddModal() {
   modalTitle.textContent = 'Add a Book';
   bookForm.reset();
   document.getElementById('book-id').value = '';
+  document.getElementById('book-last-read').value = '';
   deleteBookBtn.hidden = true;
   setRating(0);
   bookModal.hidden = false;
@@ -531,6 +627,7 @@ function openEditModal(book) {
   document.getElementById('book-author').value = book.author;
   document.getElementById('book-status').value = book.status;
   document.getElementById('book-notes').value  = book.notes || '';
+  document.getElementById('book-last-read').value = normalizeDate(book.lastReadOn);
   setRating(book.rating || 0);
   deleteBookBtn.hidden = false;
   bookModal.hidden = false;
@@ -550,10 +647,12 @@ bookForm.addEventListener('submit', e => {
     status: document.getElementById('book-status').value,
     rating: parseInt(bookRatingInput.value, 10),
     notes:  document.getElementById('book-notes').value,
+    lastReadOn: document.getElementById('book-last-read').value,
   };
   if (id) updateBook(id, data); else addBook(data);
   closeModal();
   renderBooks();
+  renderProfiles();
 });
 
 deleteBookBtn.addEventListener('click', () => {
@@ -562,6 +661,7 @@ deleteBookBtn.addEventListener('click', () => {
     deleteBook(id);
     closeModal();
     renderBooks();
+    renderProfiles();
   }
 });
 
