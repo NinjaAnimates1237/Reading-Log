@@ -276,6 +276,8 @@ const backToLoginBtn = document.getElementById('back-to-login-btn');
 const bookList      = document.getElementById('book-list');
 const emptyState    = document.getElementById('empty-state');
 const bookCountEl   = document.getElementById('book-count');
+const switchAccountSelect = document.getElementById('switch-account-select');
+const switchAccountBtn = document.getElementById('switch-account-btn');
 const profilesListEl = document.getElementById('profiles-list');
 const profileReadingEl = document.getElementById('profile-reading');
 const filterTabs    = document.querySelectorAll('.filter-tab');
@@ -340,7 +342,46 @@ function showAppScreen() {
   appScreen.hidden  = false;
   renderBooks();
   renderProfiles();
+  renderSwitchAccountOptions();
 }
+
+function renderSwitchAccountOptions() {
+  const currentUser = getSessionUser();
+  const otherNames = getAccountNames().filter(name => name !== currentUser);
+
+  switchAccountSelect.innerHTML = '';
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = otherNames.length === 0 ? 'No other accounts' : 'Choose account';
+  switchAccountSelect.appendChild(placeholder);
+
+  otherNames.forEach(name => {
+    const option = document.createElement('option');
+    option.value = name;
+    option.textContent = name;
+    switchAccountSelect.appendChild(option);
+  });
+
+  switchAccountSelect.disabled = otherNames.length === 0;
+  switchAccountBtn.disabled = true;
+}
+
+switchAccountSelect.addEventListener('change', () => {
+  switchAccountBtn.disabled = !switchAccountSelect.value;
+});
+
+switchAccountBtn.addEventListener('click', () => {
+  const nextUser = normalizeUsername(switchAccountSelect.value);
+  if (!nextUser) return;
+
+  clearSession();
+  showAuthScreen();
+  showLoginMode();
+  document.getElementById('login-username').value = nextUser;
+  document.getElementById('login-password').value = '';
+  authSubtitle.textContent = `Switch account: ${nextUser}`;
+  document.getElementById('login-password').focus();
+});
 
 // ── Auth forms ───────────────────────────────────────────────
 
@@ -537,6 +578,7 @@ function renderBooks() {
 function renderProfiles() {
   const names = getAccountNames();
   const currentUser = getSessionUser();
+  const otherNames = names.filter(name => name !== currentUser);
   profilesListEl.innerHTML = '';
 
   if (names.length === 0) {
@@ -545,16 +587,26 @@ function renderProfiles() {
     return;
   }
 
-  if (!selectedProfile || !names.includes(selectedProfile)) {
-    selectedProfile = currentUser && names.includes(currentUser) ? currentUser : names[0];
+  if (otherNames.length === 0) {
+    profileReadingEl.hidden = false;
+    profileReadingEl.innerHTML = '';
+    const msg = document.createElement('div');
+    msg.className = 'profile-empty';
+    msg.textContent = 'No other profiles yet. Create another account to view other readers.';
+    profileReadingEl.appendChild(msg);
+    return;
   }
 
-  names.forEach(name => {
+  if (!selectedProfile || !otherNames.includes(selectedProfile)) {
+    selectedProfile = otherNames[0];
+  }
+
+  otherNames.forEach(name => {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'profile-pill';
     if (name === selectedProfile) btn.classList.add('active');
-    btn.textContent = name === currentUser ? `${name} (you)` : name;
+    btn.textContent = name;
     btn.addEventListener('click', () => {
       selectedProfile = name;
       renderProfiles();
@@ -570,7 +622,7 @@ function renderProfiles() {
 
   const header = document.createElement('div');
   header.className = 'profile-reading-header';
-  header.textContent = `${selectedProfile} is currently reading:`;
+  header.textContent = `${selectedProfile} is currently reading`;
   profileReadingEl.appendChild(header);
 
   if (readingBooks.length === 0) {
