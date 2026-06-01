@@ -78,18 +78,29 @@
     </header>
 
     <main class="app-main">
-      <div class="filter-bar">
-        <button class="filter-tab active" data-filter="all">All</button>
-        <button class="filter-tab" data-filter="reading">Currently Reading</button>
-        <button class="filter-tab" data-filter="finished">Finished</button>
-        <button class="filter-tab" data-filter="want-to-read">Want to Read</button>
-      </div>
+      <div class="app-layout">
+        <section class="books-panel">
+          <div class="filter-bar">
+            <button class="filter-tab active" data-filter="all">All</button>
+            <button class="filter-tab" data-filter="reading">Currently Reading</button>
+            <button class="filter-tab" data-filter="finished">Finished</button>
+            <button class="filter-tab" data-filter="want-to-read">Want to Read</button>
+          </div>
 
-      <div id="book-list" class="book-grid"></div>
+          <div id="book-list" class="book-grid"></div>
 
-      <div id="empty-state" class="empty-state" hidden>
-        <div class="empty-icon">🍵</div>
-        <p class="empty-text">No books here yet.<br>Add one to get started!</p>
+          <div id="empty-state" class="empty-state" hidden>
+            <div class="empty-icon">🍵</div>
+            <p class="empty-text">No books here yet.<br>Add one to get started!</p>
+          </div>
+        </section>
+
+        <aside class="profiles-panel" aria-label="Reader profiles">
+          <h2 class="profiles-title">Reader Profiles</h2>
+          <p class="profiles-note">Click a profile to see what they are currently reading.</p>
+          <div id="profiles-list" class="profiles-list"></div>
+          <div id="profile-reading" class="profile-reading" hidden></div>
+        </aside>
       </div>
     </main>
   </div>
@@ -135,6 +146,10 @@
         <div class="field-group">
           <label for="book-notes">Notes</label>
           <textarea id="book-notes" rows="3" placeholder="What did you think?"></textarea>
+        </div>
+        <div class="field-group">
+          <label for="book-last-read">Last Read On</label>
+          <input type="date" id="book-last-read" />
         </div>
         <div class="modal-actions">
           <button type="button" id="delete-book-btn" class="btn btn-danger" hidden>Delete</button>
