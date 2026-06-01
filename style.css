@@ -181,17 +181,34 @@ body {
 
 .book-count { font-size: 0.85rem; color: var(--color-text-muted); }
 
+.switch-account-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-alt);
+}
+
 .switch-account-label {
   font-size: 0.8rem;
   font-weight: 700;
   color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.switch-account-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .switch-account-select {
-  min-width: 130px;
+  min-width: 120px;
   font-family: var(--font-sans);
   font-size: 0.82rem;
-  padding: 8px 10px;
+  padding: 7px 9px;
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
@@ -249,21 +266,23 @@ body {
 }
 
 .profiles-list {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 8px;
   margin-bottom: 12px;
 }
 
 .profile-pill {
-  border: 1.5px solid var(--color-border);
+  border: 1px solid var(--color-border);
   background: var(--color-surface-alt);
   color: var(--color-text);
-  border-radius: 999px;
-  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
   font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
+  text-align: left;
+  width: 100%;
 }
 
 .profile-pill.active,
@@ -307,6 +326,14 @@ body {
   font-size: 0.76rem;
   color: var(--color-text-muted);
   margin-top: 3px;
+}
+
+.profile-pill-meta {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+  font-weight: 400;
 }
 
 .profile-empty {
@@ -579,6 +606,7 @@ textarea { resize: vertical; min-height: 80px; }
   .profiles-panel { position: static; order: -1; }
   .book-grid { grid-template-columns: 1fr; }
   .field-row { grid-template-columns: 1fr; }
+  .switch-account-wrap { display: none; }
   .switch-account-label,
   .switch-account-select,
   #switch-account-btn { display: none; }
