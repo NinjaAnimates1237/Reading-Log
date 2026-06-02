@@ -239,6 +239,12 @@ body[data-theme="dark"] {
 
 .header-actions { display: flex; align-items: center; gap: 12px; }
 
+.current-user-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .current-user {
   display: inline-flex;
   align-items: center;
@@ -253,6 +259,10 @@ body[data-theme="dark"] {
   font-size: 0.8rem;
   font-weight: 700;
   color: var(--color-text-muted);
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .avatar {
@@ -323,6 +333,12 @@ body[data-theme="dark"] {
   outline: none;
   border-color: var(--color-accent);
   box-shadow: 0 0 0 3px rgba(200, 118, 58, 0.15);
+}
+
+.field-help {
+  font-size: 0.76rem;
+  color: var(--color-text-muted);
+  line-height: 1.4;
 }
 
 /* ============================
@@ -620,6 +636,10 @@ body[data-theme="dark"] {
 
 .btn-full { width: 100%; }
 
+#change-pfp-btn {
+  padding-inline: 12px;
+}
+
 .btn-icon {
   background: none;
   border: none;
@@ -748,6 +768,7 @@ textarea { resize: vertical; min-height: 80px; }
   .book-search { min-width: 100%; max-width: 100%; margin-left: 0; }
   .book-grid { grid-template-columns: 1fr; }
   .field-row { grid-template-columns: 1fr; }
+  .current-user-tools,
   .current-user,
   .switch-account-wrap { display: none; }
   .switch-account-label,

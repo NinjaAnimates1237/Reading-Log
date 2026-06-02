@@ -99,13 +99,31 @@ function normalizePfpUrl(value) {
   const str = String(value || '').trim();
   if (!str) return '';
   if (str.startsWith('data:image/')) return str;
-  try {
-    const url = new URL(str);
-    if (url.protocol === 'http:' || url.protocol === 'https:') return url.href;
-  } catch {
+  return '';
+}
+
+async function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('Unable to read selected image.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function getValidatedPfpFromInput(fileInput, { required = false } = {}) {
+  const file = fileInput?.files?.[0];
+  if (!file) {
+    if (required) throw new Error('Please select an image file.');
     return '';
   }
-  return '';
+  if (!file.type.startsWith('image/')) {
+    throw new Error('Please upload an image file.');
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    throw new Error('Image must be 2 MB or smaller.');
+  }
+  return fileToDataUrl(file);
 }
 
 function migrateLegacyAuthIfNeeded() {
@@ -154,6 +172,17 @@ function getAuthRecord(username) {
 
 function hasAccount(username) {
   return !!getAuthRecord(username);
+}
+
+function updateUserPfp(username, pfpDataUrl) {
+  const normalized = normalizeUsername(username);
+  if (!normalized) return false;
+  const store = getAuthStore();
+  const record = store.users[normalized];
+  if (!record) return false;
+  record.pfpUrl = normalizePfpUrl(pfpDataUrl);
+  saveAuthStore(store);
+  return true;
 }
 
 async function setupPassword(username, password, pfpUrl) {
@@ -306,6 +335,8 @@ const emptyState    = document.getElementById('empty-state');
 const bookCountEl   = document.getElementById('book-count');
 const currentUserNameEl = document.getElementById('current-user-name');
 const currentUserAvatarEl = document.getElementById('current-user-avatar');
+const changePfpBtn = document.getElementById('change-pfp-btn');
+const changePfpFileInput = document.getElementById('change-pfp-file');
 const themeToggleBtn = document.getElementById('theme-toggle-btn');
 const switchAccountSelect = document.getElementById('switch-account-select');
 const switchAccountBtn = document.getElementById('switch-account-btn');
@@ -495,8 +526,7 @@ setupForm.addEventListener('submit', async e => {
   e.preventDefault();
   hideError(setupError);
   const username = normalizeUsername(document.getElementById('setup-username').value);
-  const setupPfpInput = document.getElementById('setup-pfp');
-  const pfpUrl = setupPfpInput ? setupPfpInput.value : '';
+  const setupPfpInput = document.getElementById('setup-pfp-file');
   const password = document.getElementById('setup-password').value;
   const confirm  = document.getElementById('setup-confirm').value;
 
@@ -511,6 +541,7 @@ setupForm.addEventListener('submit', async e => {
   btn.disabled    = true;
   btn.textContent = 'Setting up…';
   try {
+    const pfpUrl = await getValidatedPfpFromInput(setupPfpInput);
     const result = await setupPassword(username, password, pfpUrl);
     if (!result.ok && result.reason === 'exists') {
       showError(setupError, 'That username already exists. Pick another one.');
@@ -519,8 +550,9 @@ setupForm.addEventListener('submit', async e => {
       return;
     }
     showAppScreen();
-  } catch {
-    showError(setupError, 'Something went wrong. Please try again.');
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.';
+    showError(setupError, message);
     btn.disabled    = false;
     btn.textContent = 'Create Password';
   }
@@ -920,6 +952,42 @@ if (themeToggleBtn) {
     const next = current === 'dark' ? 'light' : 'dark';
     localStorage.setItem(THEME_KEY, next);
     applyTheme(next);
+  });
+}
+
+if (changePfpBtn && changePfpFileInput) {
+  changePfpBtn.addEventListener('click', () => {
+    changePfpFileInput.click();
+  });
+
+  changePfpFileInput.addEventListener('change', async () => {
+    const currentUser = getSessionUser();
+    if (!currentUser) return;
+
+    const originalText = changePfpBtn.textContent;
+    changePfpBtn.disabled = true;
+    changePfpBtn.textContent = 'Uploading...';
+    try {
+      const pfpDataUrl = await getValidatedPfpFromInput(changePfpFileInput, { required: true });
+      const updated = updateUserPfp(currentUser, pfpDataUrl);
+      if (!updated) throw new Error('Could not update profile image.');
+      renderCurrentUserHeader();
+      renderProfiles();
+      changePfpFileInput.value = '';
+      changePfpBtn.textContent = 'Updated';
+      setTimeout(() => {
+        changePfpBtn.textContent = originalText;
+      }, 1200);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to update image.';
+      alert(message);
+      changePfpBtn.textContent = originalText;
+    } finally {
+      changePfpBtn.disabled = false;
+      if (changePfpBtn.textContent !== 'Updated') {
+        changePfpBtn.textContent = originalText;
+      }
+    }
   });
 }
 

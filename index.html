@@ -35,8 +35,9 @@
           <input type="text" id="setup-username" autocomplete="username" minlength="2" maxlength="20" required placeholder="reader1" />
         </div>
         <div class="field-group">
-          <label for="setup-pfp">Profile Picture URL (optional)</label>
-          <input type="url" id="setup-pfp" autocomplete="url" placeholder="https://example.com/avatar.jpg" />
+          <label for="setup-pfp-file">Profile Picture (optional)</label>
+          <input type="file" id="setup-pfp-file" accept="image/*" />
+          <p class="field-help">Upload an image file. This app stores it only in this browser.</p>
         </div>
         <div class="field-group">
           <label for="setup-password">Password</label>
@@ -80,9 +81,13 @@
         </div>
         <div class="header-actions">
           <button id="theme-toggle-btn" class="btn btn-ghost" aria-pressed="false">Dark Mode</button>
-          <div class="current-user">
-            <div id="current-user-avatar" class="avatar avatar-sm" aria-hidden="true"></div>
-            <span id="current-user-name" class="current-user-name"></span>
+          <div class="current-user-tools">
+            <div class="current-user">
+              <div id="current-user-avatar" class="avatar avatar-sm" aria-hidden="true"></div>
+              <span id="current-user-name" class="current-user-name"></span>
+            </div>
+            <button id="change-pfp-btn" class="btn btn-ghost">Change PFP</button>
+            <input type="file" id="change-pfp-file" accept="image/*" hidden />
           </div>
           <span id="book-count" class="book-count"></span>
           <div class="switch-account-wrap">
