@@ -327,8 +327,10 @@ function getThemePreference() {
 function applyTheme(theme) {
   const resolved = theme === 'dark' ? 'dark' : 'light';
   document.body.setAttribute('data-theme', resolved);
-  themeToggleBtn.textContent = resolved === 'dark' ? 'Light Mode' : 'Dark Mode';
-  themeToggleBtn.setAttribute('aria-pressed', resolved === 'dark' ? 'true' : 'false');
+  if (themeToggleBtn) {
+    themeToggleBtn.textContent = resolved === 'dark' ? 'Light Mode' : 'Dark Mode';
+    themeToggleBtn.setAttribute('aria-pressed', resolved === 'dark' ? 'true' : 'false');
+  }
 }
 
 function renderAvatar(el, username, pfpUrl) {
@@ -403,6 +405,7 @@ function showAppScreen() {
 
 function renderCurrentUserHeader() {
   const user = getSessionUser();
+  if (!currentUserNameEl || !currentUserAvatarEl) return;
   currentUserNameEl.textContent = user || '';
   renderAvatar(currentUserAvatarEl, user || '?', getUserPfpUrl(user || ''));
 }
@@ -459,7 +462,8 @@ setupForm.addEventListener('submit', async e => {
   e.preventDefault();
   hideError(setupError);
   const username = normalizeUsername(document.getElementById('setup-username').value);
-  const pfpUrl = document.getElementById('setup-pfp').value;
+  const setupPfpInput = document.getElementById('setup-pfp');
+  const pfpUrl = setupPfpInput ? setupPfpInput.value : '';
   const password = document.getElementById('setup-password').value;
   const confirm  = document.getElementById('setup-confirm').value;
 
@@ -564,10 +568,12 @@ filterTabs.forEach(tab => {
   });
 });
 
-bookSearchInput.addEventListener('input', () => {
-  currentSearch = bookSearchInput.value.trim().toLowerCase();
-  renderBooks();
-});
+if (bookSearchInput) {
+  bookSearchInput.addEventListener('input', () => {
+    currentSearch = bookSearchInput.value.trim().toLowerCase();
+    renderBooks();
+  });
+}
 
 // ── Book rendering ───────────────────────────────────────────
 
@@ -851,12 +857,14 @@ starRating.addEventListener('mouseover', e => {
 
 starRating.addEventListener('mouseleave', () => setRating(currentRating));
 
-themeToggleBtn.addEventListener('click', () => {
-  const current = document.body.getAttribute('data-theme') || 'light';
-  const next = current === 'dark' ? 'light' : 'dark';
-  localStorage.setItem(THEME_KEY, next);
-  applyTheme(next);
-});
+if (themeToggleBtn) {
+  themeToggleBtn.addEventListener('click', () => {
+    const current = document.body.getAttribute('data-theme') || 'light';
+    const next = current === 'dark' ? 'light' : 'dark';
+    localStorage.setItem(THEME_KEY, next);
+    applyTheme(next);
+  });
+}
 
 // ── Init ─────────────────────────────────────────────────────
 
