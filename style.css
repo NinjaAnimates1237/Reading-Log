@@ -49,6 +49,22 @@ body {
     radial-gradient(ellipse at 80% 85%, rgba(122, 69, 34, 0.06) 0%, transparent 50%);
 }
 
+body[data-theme="dark"] {
+  --color-bg: #221b17;
+  --color-surface: #2a221d;
+  --color-surface-alt: #332a24;
+  --color-border: #4f4035;
+  --color-text: #f5e6d8;
+  --color-text-muted: #cfb59f;
+  --color-primary: #d48952;
+  --color-primary-hover: #bc7440;
+  --color-accent: #e8ab74;
+  --color-star-empty: #736255;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.22);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.26);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.32);
+}
+
 [hidden] { display: none !important; }
 
 @keyframes fadeIn {
@@ -178,6 +194,50 @@ body {
 }
 
 .header-actions { display: flex; align-items: center; gap: 12px; }
+
+.current-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 4px 10px 4px 6px;
+  background: var(--color-surface-alt);
+}
+
+.current-user-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  border: 1px solid var(--color-border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+}
+
+.avatar-sm {
+  width: 24px;
+  height: 24px;
+  font-size: 0.62rem;
+}
+
+.avatar.has-image {
+  color: transparent;
+}
 
 .book-count { font-size: 0.85rem; color: var(--color-text-muted); }
 
@@ -336,6 +396,12 @@ body {
   font-weight: 400;
 }
 
+.profile-pill-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .profile-empty {
   font-size: 0.82rem;
   color: var(--color-text-muted);
@@ -350,6 +416,25 @@ body {
   gap: 8px;
   flex-wrap: wrap;
   margin-bottom: 28px;
+}
+
+.book-search {
+  margin-left: auto;
+  min-width: 240px;
+  max-width: 320px;
+  font-family: var(--font-sans);
+  font-size: 0.86rem;
+  padding: 8px 12px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.book-search:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(200, 118, 58, 0.15);
 }
 
 .filter-tab {
@@ -505,6 +590,7 @@ label { font-size: 0.85rem; font-weight: 700; color: var(--color-text); }
 
 input[type="text"],
 input[type="password"],
+input[type="url"],
 select,
 textarea {
   font-family: var(--font-sans);
@@ -520,6 +606,7 @@ textarea {
 
 input[type="text"]:focus,
 input[type="password"]:focus,
+input[type="url"]:focus,
 select:focus,
 textarea:focus {
   outline: none;
@@ -604,8 +691,10 @@ textarea { resize: vertical; min-height: 80px; }
   .auth-card { padding: 32px 24px; }
   .app-layout { grid-template-columns: 1fr; }
   .profiles-panel { position: static; order: -1; }
+  .book-search { min-width: 100%; max-width: 100%; margin-left: 0; }
   .book-grid { grid-template-columns: 1fr; }
   .field-row { grid-template-columns: 1fr; }
+  .current-user,
   .switch-account-wrap { display: none; }
   .switch-account-label,
   .switch-account-select,
