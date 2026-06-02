@@ -12,6 +12,7 @@ const AUTH_KEY    = 'rl_accounts_v1';
 const SESSION_KEY = 'rl_session_v1';
 const BOOKS_KEY_PREFIX = 'rl_books_v1_';
 const ATTEMPTS_KEY = 'rl_attempts_v1';
+const THEME_KEY = 'rl_theme_v1';
 
 // ── Crypto helpers ───────────────────────────────────────────
 
@@ -94,6 +95,19 @@ function normalizeDate(value) {
   return /^\d{4}-\d{2}-\d{2}$/.test(str) ? str : '';
 }
 
+function normalizePfpUrl(value) {
+  const str = String(value || '').trim();
+  if (!str) return '';
+  if (str.startsWith('data:image/')) return str;
+  try {
+    const url = new URL(str);
+    if (url.protocol === 'http:' || url.protocol === 'https:') return url.href;
+  } catch {
+    return '';
+  }
+  return '';
+}
+
 function migrateLegacyAuthIfNeeded() {
   const raw = localStorage.getItem(AUTH_KEY);
   if (!raw) return;
@@ -138,7 +152,7 @@ function getAuthRecord(username) {
   return store.users[normalizeUsername(username)] || null;
 }
 
-async function setupPassword(username, password) {
+async function setupPassword(username, password, pfpUrl) {
   const normalized = normalizeUsername(username);
   const store = getAuthStore();
   if (store.users[normalized]) return { ok: false, reason: 'exists' };
@@ -148,11 +162,18 @@ async function setupPassword(username, password) {
   store.users[normalized] = {
     hash,
     salt,
+    pfpUrl: normalizePfpUrl(pfpUrl),
     createdAt: new Date().toISOString(),
   };
   saveAuthStore(store);
   setSession(normalized);
   return { ok: true };
+}
+
+function getUserPfpUrl(username) {
+  const record = getAuthRecord(username);
+  if (!record) return '';
+  return normalizePfpUrl(record.pfpUrl || '');
 }
 
 async function verifyPassword(username, password) {
@@ -276,11 +297,15 @@ const backToLoginBtn = document.getElementById('back-to-login-btn');
 const bookList      = document.getElementById('book-list');
 const emptyState    = document.getElementById('empty-state');
 const bookCountEl   = document.getElementById('book-count');
+const currentUserNameEl = document.getElementById('current-user-name');
+const currentUserAvatarEl = document.getElementById('current-user-avatar');
+const themeToggleBtn = document.getElementById('theme-toggle-btn');
 const switchAccountSelect = document.getElementById('switch-account-select');
 const switchAccountBtn = document.getElementById('switch-account-btn');
 const profilesListEl = document.getElementById('profiles-list');
 const profileReadingEl = document.getElementById('profile-reading');
 const filterTabs    = document.querySelectorAll('.filter-tab');
+const bookSearchInput = document.getElementById('book-search');
 const bookModal     = document.getElementById('book-modal');
 const bookForm      = document.getElementById('book-form');
 const modalTitle    = document.getElementById('modal-title');
@@ -291,6 +316,36 @@ const bookRatingInput = document.getElementById('book-rating');
 let currentFilter = 'all';
 let currentRating = 0;
 let selectedProfile = null;
+let currentSearch = '';
+
+function getThemePreference() {
+  const saved = localStorage.getItem(THEME_KEY);
+  if (saved === 'light' || saved === 'dark') return saved;
+  return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function applyTheme(theme) {
+  const resolved = theme === 'dark' ? 'dark' : 'light';
+  document.body.setAttribute('data-theme', resolved);
+  themeToggleBtn.textContent = resolved === 'dark' ? 'Light Mode' : 'Dark Mode';
+  themeToggleBtn.setAttribute('aria-pressed', resolved === 'dark' ? 'true' : 'false');
+}
+
+function renderAvatar(el, username, pfpUrl) {
+  const safePfp = normalizePfpUrl(pfpUrl);
+  el.classList.add('avatar');
+  if (safePfp) {
+    el.style.backgroundImage = `url("${safePfp}")`;
+    el.classList.add('has-image');
+    el.textContent = '';
+    return;
+  }
+
+  el.style.backgroundImage = '';
+  el.classList.remove('has-image');
+  const initials = String(username || '?').slice(0, 2).toUpperCase();
+  el.textContent = initials;
+}
 
 // ── Screen helpers ───────────────────────────────────────────
 
@@ -340,9 +395,16 @@ function showAuthScreen() {
 function showAppScreen() {
   authScreen.hidden = true;
   appScreen.hidden  = false;
+  renderCurrentUserHeader();
   renderBooks();
   renderProfiles();
   renderSwitchAccountOptions();
+}
+
+function renderCurrentUserHeader() {
+  const user = getSessionUser();
+  currentUserNameEl.textContent = user || '';
+  renderAvatar(currentUserAvatarEl, user || '?', getUserPfpUrl(user || ''));
 }
 
 function renderSwitchAccountOptions() {
@@ -397,6 +459,7 @@ setupForm.addEventListener('submit', async e => {
   e.preventDefault();
   hideError(setupError);
   const username = normalizeUsername(document.getElementById('setup-username').value);
+  const pfpUrl = document.getElementById('setup-pfp').value;
   const password = document.getElementById('setup-password').value;
   const confirm  = document.getElementById('setup-confirm').value;
 
@@ -411,7 +474,7 @@ setupForm.addEventListener('submit', async e => {
   btn.disabled    = true;
   btn.textContent = 'Setting up…';
   try {
-    const result = await setupPassword(username, password);
+    const result = await setupPassword(username, password, pfpUrl);
     if (!result.ok && result.reason === 'exists') {
       showError(setupError, 'That username already exists. Pick another one.');
       btn.disabled = false;
@@ -501,13 +564,25 @@ filterTabs.forEach(tab => {
   });
 });
 
+bookSearchInput.addEventListener('input', () => {
+  currentSearch = bookSearchInput.value.trim().toLowerCase();
+  renderBooks();
+});
+
 // ── Book rendering ───────────────────────────────────────────
 
 function renderBooks() {
   const books    = getBooks();
-  const filtered = currentFilter === 'all'
+  const filteredByStatus = currentFilter === 'all'
     ? books
     : books.filter(b => b.status === currentFilter);
+
+  const filtered = !currentSearch
+    ? filteredByStatus
+    : filteredByStatus.filter(b => {
+      const haystack = `${b.title} ${b.author} ${b.notes || ''}`.toLowerCase();
+      return haystack.includes(currentSearch);
+    });
 
   const total = books.length;
   bookCountEl.textContent = total === 0 ? '' : `${total} book${total !== 1 ? 's' : ''}`;
@@ -612,12 +687,24 @@ function renderProfiles() {
   otherNames.forEach(name => {
     const userBooks = getBooksForUser(name);
     const currentlyReadingCount = userBooks.filter(book => book.status === 'reading').length;
+    const userPfp = getUserPfpUrl(name);
 
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'profile-pill';
     if (name === selectedProfile) btn.classList.add('active');
-    btn.textContent = name;
+    const row = document.createElement('span');
+    row.className = 'profile-pill-row';
+
+    const avatar = document.createElement('span');
+    avatar.className = 'avatar avatar-sm';
+    renderAvatar(avatar, name, userPfp);
+
+    const nameEl = document.createElement('span');
+    nameEl.textContent = name;
+
+    row.append(avatar, nameEl);
+    btn.appendChild(row);
 
     const meta = document.createElement('span');
     meta.className = 'profile-pill-meta';
@@ -764,7 +851,16 @@ starRating.addEventListener('mouseover', e => {
 
 starRating.addEventListener('mouseleave', () => setRating(currentRating));
 
+themeToggleBtn.addEventListener('click', () => {
+  const current = document.body.getAttribute('data-theme') || 'light';
+  const next = current === 'dark' ? 'light' : 'dark';
+  localStorage.setItem(THEME_KEY, next);
+  applyTheme(next);
+});
+
 // ── Init ─────────────────────────────────────────────────────
+
+applyTheme(getThemePreference());
 
 if (isLoggedIn()) {
   showAppScreen();
