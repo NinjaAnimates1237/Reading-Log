@@ -293,6 +293,7 @@ const loginError    = document.getElementById('login-error');
 const loginLockout  = document.getElementById('login-lockout');
 const authTabLogin  = document.getElementById('auth-tab-login');
 const authTabRegister = document.getElementById('auth-tab-register');
+const authTabHint = document.getElementById('auth-tab-hint');
 const authUsersEl   = document.getElementById('auth-users');
 const showSetupBtn  = document.getElementById('show-setup-btn');
 const backToLoginBtn = document.getElementById('back-to-login-btn');
@@ -365,6 +366,19 @@ function setAuthTab(mode) {
   authTabRegister.setAttribute('aria-selected', loginActive ? 'false' : 'true');
 }
 
+function updateAuthTabState() {
+  if (!authTabLogin || !authTabHint) return;
+  const hasAnyAccount = hasAuth();
+  authTabLogin.disabled = !hasAnyAccount;
+  if (hasAnyAccount) {
+    authTabHint.hidden = true;
+    authTabHint.textContent = '';
+  } else {
+    authTabHint.hidden = false;
+    authTabHint.textContent = 'Create your first account from Register to get started.';
+  }
+}
+
 function showAccountList() {
   const names = getAccountNames();
   if (names.length === 0) {
@@ -394,6 +408,7 @@ function showLoginMode() {
 function showAuthScreen() {
   authScreen.hidden = false;
   appScreen.hidden  = true;
+  updateAuthTabState();
   hideError(setupError);
   hideError(loginError);
   loginLockout.hidden = true;
@@ -590,7 +605,11 @@ if (bookSearchInput) {
 
 if (authTabLogin) {
   authTabLogin.addEventListener('click', () => {
-    if (!hasAuth()) return;
+    if (!hasAuth()) {
+      showSetupMode(false);
+      authSubtitle.textContent = 'Create your first account';
+      return;
+    }
     showLoginMode();
     authSubtitle.textContent = 'Welcome back';
   });

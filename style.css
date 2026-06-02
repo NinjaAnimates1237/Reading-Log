@@ -135,12 +135,25 @@ body[data-theme="dark"] {
 .auth-tab:hover {
   border-color: var(--color-accent);
   color: var(--color-primary);
+  transform: translateY(-1px);
 }
 
 .auth-tab.active {
   background: var(--color-primary);
   border-color: var(--color-primary);
   color: #fff;
+}
+
+.auth-tab:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.auth-tab-hint {
+  margin: -8px 0 16px;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
 }
 
 .auth-hint {
@@ -582,9 +595,19 @@ body[data-theme="dark"] {
   justify-content: center;
   gap: 6px;
   white-space: nowrap;
+  box-shadow: var(--shadow-sm);
 }
 
 .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.btn:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn:not(:disabled):active {
+  transform: translateY(0);
+}
 
 .btn-primary { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
 .btn-primary:not(:disabled):hover { background: var(--color-primary-hover); border-color: var(--color-primary-hover); }
