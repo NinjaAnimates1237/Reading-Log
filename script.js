@@ -369,7 +369,7 @@ function setAuthTab(mode) {
 function updateAuthTabState() {
   if (!authTabLogin || !authTabHint) return;
   const hasAnyAccount = hasAuth();
-  authTabLogin.disabled = !hasAnyAccount;
+  authTabLogin.disabled = false;
   if (hasAnyAccount) {
     authTabHint.hidden = true;
     authTabHint.textContent = '';
