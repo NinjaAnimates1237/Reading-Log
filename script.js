@@ -152,6 +152,10 @@ function getAuthRecord(username) {
   return store.users[normalizeUsername(username)] || null;
 }
 
+function hasAccount(username) {
+  return !!getAuthRecord(username);
+}
+
 async function setupPassword(username, password, pfpUrl) {
   const normalized = normalizeUsername(username);
   const store = getAuthStore();
@@ -387,7 +391,7 @@ function showAccountList() {
     return;
   }
   authUsersEl.hidden = false;
-  authUsersEl.textContent = `Accounts: ${names.join(', ')}`;
+  authUsersEl.textContent = `Accounts on this browser: ${names.join(', ')}`;
 }
 
 function showSetupMode(canGoBack) {
@@ -409,6 +413,7 @@ function showAuthScreen() {
   authScreen.hidden = false;
   appScreen.hidden  = true;
   updateAuthTabState();
+  if (authTabLogin) authTabLogin.disabled = false;
   hideError(setupError);
   hideError(loginError);
   loginLockout.hidden = true;
@@ -528,6 +533,11 @@ loginForm.addEventListener('submit', async e => {
 
   if (!isValidUsername(username)) {
     showError(loginError, 'Enter a valid username.');
+    return;
+  }
+
+  if (!hasAccount(username)) {
+    showError(loginError, 'That account is not on this browser yet. Use Register to create it here.');
     return;
   }
 
