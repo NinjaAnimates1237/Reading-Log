@@ -291,6 +291,8 @@ const loginForm     = document.getElementById('login-form');
 const setupError    = document.getElementById('setup-error');
 const loginError    = document.getElementById('login-error');
 const loginLockout  = document.getElementById('login-lockout');
+const authTabLogin  = document.getElementById('auth-tab-login');
+const authTabRegister = document.getElementById('auth-tab-register');
 const authUsersEl   = document.getElementById('auth-users');
 const showSetupBtn  = document.getElementById('show-setup-btn');
 const backToLoginBtn = document.getElementById('back-to-login-btn');
@@ -354,6 +356,15 @@ function renderAvatar(el, username, pfpUrl) {
 function showError(el, msg) { el.textContent = msg; el.hidden = false; }
 function hideError(el)      { el.hidden = true; el.textContent = ''; }
 
+function setAuthTab(mode) {
+  if (!authTabLogin || !authTabRegister) return;
+  const loginActive = mode === 'login';
+  authTabLogin.classList.toggle('active', loginActive);
+  authTabRegister.classList.toggle('active', !loginActive);
+  authTabLogin.setAttribute('aria-selected', loginActive ? 'true' : 'false');
+  authTabRegister.setAttribute('aria-selected', loginActive ? 'false' : 'true');
+}
+
 function showAccountList() {
   const names = getAccountNames();
   if (names.length === 0) {
@@ -369,12 +380,14 @@ function showSetupMode(canGoBack) {
   setupForm.hidden = false;
   loginForm.hidden = true;
   backToLoginBtn.hidden = !canGoBack;
+  setAuthTab('register');
   showAccountList();
 }
 
 function showLoginMode() {
   loginForm.hidden = false;
   setupForm.hidden = true;
+  setAuthTab('login');
   showAccountList();
 }
 
@@ -572,6 +585,21 @@ if (bookSearchInput) {
   bookSearchInput.addEventListener('input', () => {
     currentSearch = bookSearchInput.value.trim().toLowerCase();
     renderBooks();
+  });
+}
+
+if (authTabLogin) {
+  authTabLogin.addEventListener('click', () => {
+    if (!hasAuth()) return;
+    showLoginMode();
+    authSubtitle.textContent = 'Welcome back';
+  });
+}
+
+if (authTabRegister) {
+  authTabRegister.addEventListener('click', () => {
+    showSetupMode(hasAuth());
+    authSubtitle.textContent = hasAuth() ? 'Create another account' : 'Set up your reading log';
   });
 }
 
