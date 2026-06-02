@@ -30,6 +30,10 @@
           <input type="text" id="setup-username" autocomplete="username" minlength="2" maxlength="20" required placeholder="reader1" />
         </div>
         <div class="field-group">
+          <label for="setup-pfp">Profile Picture URL (optional)</label>
+          <input type="url" id="setup-pfp" autocomplete="url" placeholder="https://example.com/avatar.jpg" />
+        </div>
+        <div class="field-group">
           <label for="setup-password">Password</label>
           <input type="password" id="setup-password" autocomplete="new-password" minlength="8" required placeholder="At least 8 characters" />
         </div>
@@ -70,12 +74,21 @@
           <h1 class="header-title">Reading Log</h1>
         </div>
         <div class="header-actions">
+          <button id="theme-toggle-btn" class="btn btn-ghost" aria-pressed="false">Dark Mode</button>
+          <div class="current-user">
+            <div id="current-user-avatar" class="avatar avatar-sm" aria-hidden="true"></div>
+            <span id="current-user-name" class="current-user-name"></span>
+          </div>
           <span id="book-count" class="book-count"></span>
-          <label for="switch-account-select" class="switch-account-label">Switch to</label>
-          <select id="switch-account-select" class="switch-account-select" aria-label="Switch account">
-            <option value="">Choose account</option>
-          </select>
-          <button id="switch-account-btn" class="btn btn-ghost" disabled>Switch</button>
+          <div class="switch-account-wrap">
+            <label for="switch-account-select" class="switch-account-label">Switch account</label>
+            <div class="switch-account-controls">
+              <select id="switch-account-select" class="switch-account-select" aria-label="Switch account">
+                <option value="">Choose account</option>
+              </select>
+              <button id="switch-account-btn" class="btn btn-ghost" disabled>Go</button>
+            </div>
+          </div>
           <button id="add-book-btn" class="btn btn-primary">+ Add Book</button>
           <button id="logout-btn" class="btn btn-ghost">Sign Out</button>
         </div>
@@ -90,6 +103,13 @@
             <button class="filter-tab" data-filter="reading">Currently Reading</button>
             <button class="filter-tab" data-filter="finished">Finished</button>
             <button class="filter-tab" data-filter="want-to-read">Want to Read</button>
+            <input
+              type="search"
+              id="book-search"
+              class="book-search"
+              placeholder="Search title, author, or notes"
+              aria-label="Search books"
+            />
           </div>
 
           <div id="book-list" class="book-grid"></div>
